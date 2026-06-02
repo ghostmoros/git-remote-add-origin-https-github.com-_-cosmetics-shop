@@ -100,6 +100,14 @@ class MT5Broker(Broker):
         # MT5: ACCOUNT_TRADE_MODE_DEMO == 0, CONTEST == 1, REAL == 2.
         return self.account_info().get("trade_mode", 2) == 0
 
+    def symbol_info(self, symbol: str) -> dict:
+        """Contract specs incl. trade_tick_value/size and volume_min/max/step."""
+        mt5 = self._lib()
+        info = mt5.symbol_info(symbol)
+        if info is None:
+            raise RuntimeError(f"No symbol info for {symbol}: {mt5.last_error()}")
+        return info._asdict()
+
     def positions(self, symbol: str | None = None) -> list[dict]:
         mt5 = self._lib()
         raw = mt5.positions_get(symbol=symbol) if symbol else mt5.positions_get()

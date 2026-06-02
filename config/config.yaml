@@ -40,5 +40,6 @@ broker:
 live:
   dry_run: true            # true = decide & print only, place NO orders
   allow_real: false        # must be true to trade a REAL (non-demo) account
-  lots: 0.01               # fixed position size (lots) for now
+  sizing: risk             # risk = size from backtest.risk_pct & stop distance; fixed = use lots
+  lots: 0.01               # fallback fixed size when sizing: fixed
   poll_seconds: 60         # delay between cycles when run with --loop

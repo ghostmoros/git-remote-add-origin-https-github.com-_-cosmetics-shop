@@ -24,6 +24,7 @@ import yaml
 
 from bot.brokers.mt5 import MT5Broker
 from bot.data.indicators import atr
+from bot.risk.sizing import position_size
 from bot.strategies import build_strategy
 
 
@@ -47,11 +48,26 @@ def decide_and_act(broker, strategy, df, symbol, live_cfg, risk_cfg) -> None:
     side = "buy" if desired == 1 else "sell"
     price = float(df["close"].iloc[-1])
     a = float(atr(df["high"], df["low"], df["close"], risk_cfg["atr_period"]).iloc[-1])
+    stop_distance = risk_cfg["sl_atr"] * a
     if desired == 1:
-        sl, tp = price - risk_cfg["sl_atr"] * a, price + risk_cfg["tp_atr"] * a
+        sl, tp = price - stop_distance, price + risk_cfg["tp_atr"] * a
     else:
-        sl, tp = price + risk_cfg["sl_atr"] * a, price - risk_cfg["tp_atr"] * a
-    volume = float(live_cfg.get("lots", 0.01))
+        sl, tp = price + stop_distance, price - risk_cfg["tp_atr"] * a
+
+    if live_cfg.get("sizing", "fixed") == "risk":
+        acc = broker.account_info()
+        equity = float(acc.get("equity", acc.get("balance", 0.0)))
+        info = broker.symbol_info(symbol)
+        risk_amount = equity * risk_cfg["risk_pct"]
+        volume = position_size(
+            risk_amount, stop_distance,
+            info["trade_tick_value"], info["trade_tick_size"],
+            info["volume_min"], info["volume_max"], info["volume_step"],
+        )
+        print(f"  risk-sizing: equity={equity:.2f} risk={risk_amount:.2f} "
+              f"({risk_cfg['risk_pct'] * 100:.1f}%) -> {volume} lots")
+    else:
+        volume = float(live_cfg.get("lots", 0.01))
 
     if live_cfg.get("dry_run", True):
         print(f"  DRY-RUN: would {side} {volume} {symbol} @~{price:.5f} "

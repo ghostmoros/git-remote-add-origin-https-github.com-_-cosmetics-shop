@@ -63,6 +63,8 @@ forex-bot/
 │   ├── brokers/
 │   │   ├── base.py            # Broker interface (the venue seam)
 │   │   └── mt5.py             # MetaTrader 5 adapter (RoboForex etc.)
+│   ├── risk/
+│   │   └── sizing.py          # lot sizing from risk % + stop distance
 │   └── backtest/
 │       ├── engine.py          # risk-based sizing, ATR SL/TP, no look-ahead
 │       └── metrics.py         # win rate, profit factor, expectancy, drawdown…
@@ -71,6 +73,7 @@ forex-bot/
 ├── optimize.py                # sweep risk params, rank by expectancy & win rate
 ├── compare.py                 # backtest every strategy, ranked in one table
 ├── run_live.py                # live/dry-run trading via MT5 (run on YOUR PC)
+├── fetch_history.py           # dump real candles from MT5 to data/*.csv
 ├── requirements.txt
 └── requirements-live.txt      # MetaTrader5 (Windows-only)
 ```
@@ -149,10 +152,24 @@ makes every result comparable in **R multiples**.
 Prove the strategy on demo for a meaningful period before even thinking about
 real money.
 
+## Position sizing
+
+Live orders are sized so a stop-loss hit loses exactly `backtest.risk_pct` of
+account equity — the same risk model as the backtest. `bot/risk/sizing.py`
+converts (risk amount, stop distance, contract tick value/size) into a lot size,
+snapped to the broker's volume step. Set `live.sizing: risk` (default) to use
+it, or `live.sizing: fixed` to fall back to a constant `live.lots`.
+
 ## Using real data
 
-Drop a CSV with `time, open, high, low, close` columns into `data/` and point
-the config at it:
+**Easiest — pull it straight from MT5** (on the machine with the terminal):
+
+```bash
+python fetch_history.py EURUSD H1 5000   # -> data/EURUSD_H1.csv
+```
+
+Or drop any CSV with `time, open, high, low, close` columns into `data/`. Then
+point the config at it and backtest/compare on the real market:
 
 ```yaml
 data:
@@ -160,12 +177,17 @@ data:
   csv_path: data/EURUSD_H1.csv
 ```
 
+```bash
+python compare.py    # which strategy actually holds an edge on real EUR/USD?
+```
+
 ## Roadmap
 
 - [x] Indicators, strategies, backtest engine, metrics, optimizer
 - [x] Broker adapter interface (`bot/brokers/base.py`)
 - [x] MetaTrader 5 adapter + dry-run live runner (demo-first, real-account gated)
-- [ ] Risk-based lot sizing for live orders (currently a fixed `lots`)
+- [x] Risk-based lot sizing for live orders (% of equity per trade)
+- [x] Pull real history from MT5 to CSV (`fetch_history.py`)
 - [ ] OANDA adapter (REST + streaming, practice account first)
 - [ ] Telegram alerts / status reporting
 - [ ] Walk-forward validation to avoid overfitting
