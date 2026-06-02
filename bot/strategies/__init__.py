@@ -11,6 +11,7 @@ from bot.strategies.mean_reversion import MeanReversion
 from bot.strategies.rsi import RSIStrategy
 from bot.strategies.stochastic import StochasticStrategy
 from bot.strategies.supertrend import SuperTrendStrategy
+from bot.strategies.trend_pullback import TrendPullback
 
 REGISTRY = {
     cls.name: cls
@@ -24,6 +25,7 @@ REGISTRY = {
         IchimokuStrategy,
         DonchianBreakout,
         LondonBreakout,
+        TrendPullback,
     )
 }
 

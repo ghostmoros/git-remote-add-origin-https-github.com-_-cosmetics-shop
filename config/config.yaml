@@ -10,7 +10,8 @@ data:
 
 strategy:
   # mean_reversion | rsi | stochastic | ma_crossover | macd | supertrend |
-  # ichimoku | donchian | london_breakout
+  # ichimoku | donchian | london_breakout | trend_pullback
+  # (for GOLD use config/config_gold.yaml — trend_pullback tuned for XAUUSD)
   name: mean_reversion
   params:
     bb_period: 20

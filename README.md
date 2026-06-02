@@ -100,6 +100,8 @@ and re-implemented behind our common signal interface.
 - **macd** — MACD line vs signal line.
 - **supertrend** — ride the ATR-based SuperTrend line (popular in FX/MT5).
 - **ichimoku** — long above the cloud + Tenkan > Kijun (and mirror for shorts).
+- **trend_pullback** — EMA trend + ADX strength filter, enter on a pullback
+  that reclaims the fast EMA. **Tuned for gold (XAUUSD)** — see below.
 
 **Breakout**:
 - **donchian** — Turtle-style break of the prior N-bar high/low.
@@ -151,6 +153,24 @@ makes every result comparable in **R multiples**.
 
 Prove the strategy on demo for a meaningful period before even thinking about
 real money.
+
+## Trading gold (XAUUSD)
+
+Gold is not a forex pair: it **trends hard** and is volatile, so mean-reversion
+strategies get run over by it. Use the **trend** approach instead — there's a
+ready profile in `config/config_gold.yaml` (strategy `trend_pullback`, wide
+take-profit to let trends run, smaller `risk_pct`, gold spread). The ATR-based
+stop and risk sizing auto-adapt to gold's larger volatility.
+
+```bash
+python fetch_history.py XAUUSD H1 5000     # real gold data (on your MT5 machine)
+python main.py config/config_gold.yaml     # backtest the gold profile
+python compare.py config/config_gold.yaml  # see which strategy fits gold
+```
+
+On synthetic *trending* data `trend_pullback` is strongly profitable while
+mean-reversion loses badly — and vice-versa on ranging data. The lesson:
+**match the strategy to the market regime, and confirm on real XAUUSD history.**
 
 ## Position sizing
 
