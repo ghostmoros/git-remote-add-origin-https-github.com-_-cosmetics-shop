@@ -29,3 +29,16 @@ backtest:
   sl_atr: 2.5              # stop-loss = 2.5 x ATR (wide -> rarely hit)
   tp_atr: 1.0              # take-profit = 1.0 x ATR (small -> hit often => high win rate)
   spread: 0.0001           # round-trip cost in price units (~1 pip on EURUSD)
+
+# Live trading via MetaTrader 5 (RoboForex etc.). Used by run_live.py only.
+# Credentials come from env vars MT5_LOGIN / MT5_PASSWORD / MT5_SERVER — never here.
+broker:
+  symbol: EURUSD
+  timeframe: H1            # M1 M5 M15 M30 H1 H4 D1 W1
+  candles: 500             # how many candles to pull for indicators
+
+live:
+  dry_run: true            # true = decide & print only, place NO orders
+  allow_real: false        # must be true to trade a REAL (non-demo) account
+  lots: 0.01               # fixed position size (lots) for now
+  poll_seconds: 60         # delay between cycles when run with --loop

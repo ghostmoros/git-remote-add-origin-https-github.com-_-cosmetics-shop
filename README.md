@@ -60,6 +60,9 @@ forex-bot/
 │   │   ├── ichimoku.py        # Ichimoku cloud        (trend)
 │   │   ├── donchian.py        # Donchian breakout     (breakout)
 │   │   └── london_breakout.py # session breakout      (breakout, FX-specific)
+│   ├── brokers/
+│   │   ├── base.py            # Broker interface (the venue seam)
+│   │   └── mt5.py             # MetaTrader 5 adapter (RoboForex etc.)
 │   └── backtest/
 │       ├── engine.py          # risk-based sizing, ATR SL/TP, no look-ahead
 │       └── metrics.py         # win rate, profit factor, expectancy, drawdown…
@@ -67,7 +70,9 @@ forex-bot/
 ├── main.py                    # run one backtest + report
 ├── optimize.py                # sweep risk params, rank by expectancy & win rate
 ├── compare.py                 # backtest every strategy, ranked in one table
-└── requirements.txt
+├── run_live.py                # live/dry-run trading via MT5 (run on YOUR PC)
+├── requirements.txt
+└── requirements-live.txt      # MetaTrader5 (Windows-only)
 ```
 
 **Design principle:** a *strategy* only emits signals (+1 long, −1 short, 0
@@ -112,6 +117,38 @@ Stops/targets are sized from the ATR of the last closed bar. Position size is
 set so a full stop-loss loses exactly `risk_pct` of equity (default 1 %), which
 makes every result comparable in **R multiples**.
 
+## Live trading via MetaTrader 5 (RoboForex)
+
+> ⚠️ **Runs on YOUR machine, not in the cloud.** The `MetaTrader5` package is
+> Windows-only and talks to a locally installed, running MT5 terminal. Start on
+> a **DEMO** account. Never put your password in the repo or paste it anywhere.
+
+1. Install the MT5 terminal from RoboForex and log into your **demo** account.
+2. On that machine:
+   ```bash
+   pip install -r requirements.txt -r requirements-live.txt
+   ```
+3. Provide credentials via environment variables (PowerShell example):
+   ```powershell
+   $env:MT5_LOGIN="12345678"
+   $env:MT5_PASSWORD="your-demo-password"
+   $env:MT5_SERVER="RoboForex-Demo"   # or RoboForex-Pro / RoboForex-ECN
+   ```
+4. Pick the symbol/timeframe/strategy in `config/config.yaml` (`broker:` and
+   `strategy:` sections), then run:
+   ```bash
+   python run_live.py          # one decision cycle, DRY-RUN (prints, no orders)
+   python run_live.py --loop   # keep running every live.poll_seconds
+   ```
+
+**Safety gates** (in `config.yaml` → `live:`):
+- `dry_run: true` (default) — decide and print only, place **no** orders.
+- `allow_real: false` (default) — even with `dry_run: false`, a **real** account
+  is refused unless you flip this to `true`.
+
+Prove the strategy on demo for a meaningful period before even thinking about
+real money.
+
 ## Using real data
 
 Drop a CSV with `time, open, high, low, close` columns into `data/` and point
@@ -126,11 +163,11 @@ data:
 ## Roadmap
 
 - [x] Indicators, strategies, backtest engine, metrics, optimizer
-- [ ] Broker adapter interface (`bot/brokers/base.py`)
+- [x] Broker adapter interface (`bot/brokers/base.py`)
+- [x] MetaTrader 5 adapter + dry-run live runner (demo-first, real-account gated)
+- [ ] Risk-based lot sizing for live orders (currently a fixed `lots`)
 - [ ] OANDA adapter (REST + streaming, practice account first)
-- [ ] MetaTrader 5 adapter
-- [ ] Paper-trading mode against live prices
-- [ ] Live trading (demo account only until proven) + Telegram alerts
+- [ ] Telegram alerts / status reporting
 - [ ] Walk-forward validation to avoid overfitting
 
 ## Configuration reference

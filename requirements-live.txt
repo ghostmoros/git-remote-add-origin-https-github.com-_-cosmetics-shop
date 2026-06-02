@@ -1,0 +1,4 @@
+# Live trading dependencies — install ONLY on the machine running the MT5
+# terminal (Windows). The MetaTrader5 package is Windows-only.
+#   pip install -r requirements.txt -r requirements-live.txt
+MetaTrader5>=5.0.45
