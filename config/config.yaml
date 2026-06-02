@@ -1,0 +1,29 @@
+# Forex bot configuration.
+# Everything that affects a run lives here so you can tune without touching code.
+
+data:
+  source: synthetic        # synthetic | csv
+  csv_path: data/EURUSD_H1.csv
+  synthetic_bars: 8000
+  seed: 42
+  start_price: 1.10
+
+strategy:
+  name: mean_reversion     # mean_reversion | ma_crossover
+  params:
+    bb_period: 20
+    bb_std: 2.0
+    require_rsi: false      # true = also require RSI extreme (fewer, stricter entries)
+    rsi_period: 14
+    rsi_oversold: 35
+    rsi_overbought: 65
+    use_trend_filter: false # true = only trade with the slow-EMA trend
+    trend_ema: 200
+
+backtest:
+  initial_balance: 10000
+  risk_pct: 0.01           # risk 1% of equity per trade
+  atr_period: 14
+  sl_atr: 2.5              # stop-loss = 2.5 x ATR (wide -> rarely hit)
+  tp_atr: 1.0              # take-profit = 1.0 x ATR (small -> hit often => high win rate)
+  spread: 0.0001           # round-trip cost in price units (~1 pip on EURUSD)

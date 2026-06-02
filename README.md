@@ -1,0 +1,108 @@
+# Forex Trading Bot
+
+Automated forex trading bot — currently focused on **strategy logic + backtesting**.
+Broker execution (OANDA / MetaTrader 5) plugs in later behind a clean interface,
+so the same strategy code runs in backtest → paper → live without changes.
+
+> ⚠️ **Not financial advice.** Trading forex is risky. Everything here runs on
+> synthetic data by default. Validate on real historical data and a **demo
+> account** before risking a cent.
+
+## The one thing to remember about "win rate"
+
+A high win rate does **not** mean profit. What decides profitability is
+**expectancy**:
+
+```
+expectancy = win_rate × avg_win − loss_rate × avg_loss
+```
+
+You can win 90% of trades and still lose money (tiny wins, rare huge losses).
+The backtest report always prints **win rate, profit factor and expectancy
+together** so you optimise the right thing. Example sweep on the built-in data:
+
+| Stop / Target | Win rate | Expectancy | Return | Max DD |
+|---------------|---------:|-----------:|-------:|-------:|
+| sl=3.0, tp=0.5 | **88.8 %** | +0.020 R | +10 %  | −6.0 % |
+| sl=2.5, tp=1.0 | 80.2 %     | +0.103 R | +60 %  | −4.3 % |
+| sl=1.5, tp=2.0 | 54.8 %     | **+0.244 R** | **+222 %** | −9.7 % |
+
+The **highest win rate makes the least money.** Pick an operating point by
+expectancy, then choose a win rate you can psychologically stick with.
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+
+python3 main.py        # run a backtest with config/config.yaml
+python3 optimize.py    # grid-search stop-loss / take-profit multiples
+```
+
+## Project layout
+
+```
+forex-bot/
+├── bot/
+│   ├── core/
+│   │   └── strategy.py        # base Strategy interface (signals only)
+│   ├── data/
+│   │   ├── feed.py            # load CSV or generate synthetic candles
+│   │   └── indicators.py      # SMA, EMA, RSI, ATR, Bollinger Bands
+│   ├── strategies/
+│   │   ├── mean_reversion.py  # Bollinger fade — tuned for high win rate
+│   │   └── ma_crossover.py    # trend-following baseline for comparison
+│   └── backtest/
+│       ├── engine.py          # risk-based sizing, ATR SL/TP, no look-ahead
+│       └── metrics.py         # win rate, profit factor, expectancy, drawdown…
+├── config/config.yaml         # all tunables in one place
+├── main.py                    # run one backtest + report
+├── optimize.py                # sweep risk params, rank by expectancy & win rate
+└── requirements.txt
+```
+
+**Design principle:** a *strategy* only emits signals (+1 long, −1 short, 0
+flat). It knows nothing about position size, stops, or brokers. The *engine*
+owns risk and execution. That separation is what lets us drop in an OANDA/MT5
+adapter later without touching strategy logic.
+
+## Strategies
+
+- **mean_reversion** — fades 2σ Bollinger-band stretches (buy below the lower
+  band, sell above the upper). Optional `require_rsi` and `use_trend_filter`
+  make entries stricter. Paired with a small TP and wider SL → high win rate.
+- **ma_crossover** — EMA fast/slow crossover trend follower. Lower win rate,
+  bigger winners — useful to feel the trade-off.
+
+## How signals are executed (no look-ahead bias)
+
+A signal computed from bar *i*'s close is acted on at bar *i+1*'s **open**.
+Stops/targets are sized from the ATR of the last closed bar. Position size is
+set so a full stop-loss loses exactly `risk_pct` of equity (default 1 %), which
+makes every result comparable in **R multiples**.
+
+## Using real data
+
+Drop a CSV with `time, open, high, low, close` columns into `data/` and point
+the config at it:
+
+```yaml
+data:
+  source: csv
+  csv_path: data/EURUSD_H1.csv
+```
+
+## Roadmap
+
+- [x] Indicators, strategies, backtest engine, metrics, optimizer
+- [ ] Broker adapter interface (`bot/brokers/base.py`)
+- [ ] OANDA adapter (REST + streaming, practice account first)
+- [ ] MetaTrader 5 adapter
+- [ ] Paper-trading mode against live prices
+- [ ] Live trading (demo account only until proven) + Telegram alerts
+- [ ] Walk-forward validation to avoid overfitting
+
+## Configuration reference
+
+See `config/config.yaml` — data source, strategy + params, and backtest risk
+settings (`risk_pct`, `atr_period`, `sl_atr`, `tp_atr`, `spread`).

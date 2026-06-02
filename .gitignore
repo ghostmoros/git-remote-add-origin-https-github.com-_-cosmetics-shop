@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Secrets / broker credentials — NEVER commit these
+*.cfg
+.env
+oanda.cfg
+secrets.yaml
+
+# Data & outputs
+data/*.csv
+*.png
+.idea/
+.vscode/
