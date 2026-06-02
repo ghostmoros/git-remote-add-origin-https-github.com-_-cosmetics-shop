@@ -9,7 +9,9 @@ data:
   start_price: 1.10
 
 strategy:
-  name: mean_reversion     # mean_reversion | ma_crossover
+  # mean_reversion | rsi | stochastic | ma_crossover | macd | supertrend |
+  # ichimoku | donchian | london_breakout
+  name: mean_reversion
   params:
     bb_period: 20
     bb_std: 2.0

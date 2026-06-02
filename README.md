@@ -37,6 +37,7 @@ pip install -r requirements.txt
 
 python3 main.py        # run a backtest with config/config.yaml
 python3 optimize.py    # grid-search stop-loss / take-profit multiples
+python3 compare.py     # backtest ALL strategies, ranked in one table
 ```
 
 ## Project layout
@@ -49,15 +50,23 @@ forex-bot/
 │   ├── data/
 │   │   ├── feed.py            # load CSV or generate synthetic candles
 │   │   └── indicators.py      # SMA, EMA, RSI, ATR, Bollinger Bands
-│   ├── strategies/
-│   │   ├── mean_reversion.py  # Bollinger fade — tuned for high win rate
-│   │   └── ma_crossover.py    # trend-following baseline for comparison
+│   ├── strategies/            # each = one class emitting +1 / -1 / 0 signals
+│   │   ├── mean_reversion.py  # Bollinger fade        (reversion)
+│   │   ├── rsi.py             # RSI overbought/sold   (reversion)
+│   │   ├── stochastic.py      # Stochastic oscillator (reversion)
+│   │   ├── ma_crossover.py    # EMA crossover         (trend)
+│   │   ├── macd.py            # MACD crossover        (trend)
+│   │   ├── supertrend.py      # SuperTrend            (trend)
+│   │   ├── ichimoku.py        # Ichimoku cloud        (trend)
+│   │   ├── donchian.py        # Donchian breakout     (breakout)
+│   │   └── london_breakout.py # session breakout      (breakout, FX-specific)
 │   └── backtest/
 │       ├── engine.py          # risk-based sizing, ATR SL/TP, no look-ahead
 │       └── metrics.py         # win rate, profit factor, expectancy, drawdown…
 ├── config/config.yaml         # all tunables in one place
 ├── main.py                    # run one backtest + report
 ├── optimize.py                # sweep risk params, rank by expectancy & win rate
+├── compare.py                 # backtest every strategy, ranked in one table
 └── requirements.txt
 ```
 
@@ -68,11 +77,33 @@ adapter later without touching strategy logic.
 
 ## Strategies
 
-- **mean_reversion** — fades 2σ Bollinger-band stretches (buy below the lower
-  band, sell above the upper). Optional `require_rsi` and `use_trend_filter`
-  make entries stricter. Paired with a small TP and wider SL → high win rate.
-- **ma_crossover** — EMA fast/slow crossover trend follower. Lower win rate,
-  bigger winners — useful to feel the trade-off.
+Studied from popular open-source bots ([je-suis-tm/quant-trading](https://github.com/je-suis-tm/quant-trading),
+[freqtrade](https://github.com/freqtrade/freqtrade-strategies), FXBot, MT5 bots)
+and re-implemented behind our common signal interface.
+
+**Mean reversion** (high win rate, small targets):
+- **mean_reversion** — fades 2σ Bollinger-band stretches. Optional
+  `require_rsi` / `use_trend_filter` tighten entries.
+- **rsi** — long when RSI < oversold, short when RSI > overbought.
+- **stochastic** — same idea using the stochastic oscillator.
+
+**Trend following** (lower win rate, bigger winners):
+- **ma_crossover** — fast/slow EMA crossover.
+- **macd** — MACD line vs signal line.
+- **supertrend** — ride the ATR-based SuperTrend line (popular in FX/MT5).
+- **ichimoku** — long above the cloud + Tenkan > Kijun (and mirror for shorts).
+
+**Breakout**:
+- **donchian** — Turtle-style break of the prior N-bar high/low.
+- **london_breakout** — *forex-specific*: trade the break of the pre-London
+  (Asian) range when London opens. Needs intraday data with timestamps.
+
+`compare.py` backtests them all with a stop/target profile that's fair for each
+style (trend lets winners run, reversion takes small profits) and ranks by
+expectancy. On the built-in mean-reverting synthetic data the reversion
+strategies win and the trend/breakout ones lose — exactly as theory predicts.
+**Which family wins is entirely regime-dependent**, so always re-run on the real
+market and timeframe you intend to trade.
 
 ## How signals are executed (no look-ahead bias)
 

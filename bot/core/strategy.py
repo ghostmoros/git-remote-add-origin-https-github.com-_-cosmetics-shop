@@ -19,6 +19,10 @@ import pandas as pd
 
 class Strategy:
     name = "base"
+    # "trend" | "reversion" | "breakout" — hints the comparison tool which
+    # stop/target profile is fair for this strategy (trend lets winners run,
+    # reversion takes small profits, breakout sits in between).
+    style = "trend"
 
     def __init__(self, **params):
         self.params = params

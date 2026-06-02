@@ -26,6 +26,7 @@ from bot.data.indicators import bollinger, ema, rsi
 
 class MeanReversion(Strategy):
     name = "mean_reversion"
+    style = "reversion"
 
     def __init__(
         self,

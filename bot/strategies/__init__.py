@@ -2,12 +2,29 @@
 from __future__ import annotations
 
 from bot.core.strategy import Strategy
+from bot.strategies.donchian import DonchianBreakout
+from bot.strategies.ichimoku import IchimokuStrategy
+from bot.strategies.london_breakout import LondonBreakout
 from bot.strategies.ma_crossover import MACrossover
+from bot.strategies.macd import MACDStrategy
 from bot.strategies.mean_reversion import MeanReversion
+from bot.strategies.rsi import RSIStrategy
+from bot.strategies.stochastic import StochasticStrategy
+from bot.strategies.supertrend import SuperTrendStrategy
 
 REGISTRY = {
-    MeanReversion.name: MeanReversion,
-    MACrossover.name: MACrossover,
+    cls.name: cls
+    for cls in (
+        MeanReversion,
+        RSIStrategy,
+        StochasticStrategy,
+        MACrossover,
+        MACDStrategy,
+        SuperTrendStrategy,
+        IchimokuStrategy,
+        DonchianBreakout,
+        LondonBreakout,
+    )
 }
 
 
