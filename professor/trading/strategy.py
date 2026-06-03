@@ -56,3 +56,30 @@ class SmaRsiStrategy(Strategy):
             elif crossed_down and ri > self.rsi_os:
                 signals[i] = Signal.SELL
         return signals
+
+
+@dataclass
+class DonchianBreakoutStrategy(Strategy):
+    """Пробой канала Дончяна (система «черепах»), long-only.
+
+    BUY  — close пробивает максимум за `entry_period` предыдущих свечей.
+    SELL — close пробивает минимум за `exit_period` предыдущих свечей.
+
+    Канал считается по свечам ДО текущей (срез [i-period:i]) — без lookahead.
+    """
+
+    entry_period: int = 20
+    exit_period: int = 10
+    name: str = "Donchian breakout"
+
+    def generate(self, candles: list[Candle]) -> list[Signal]:
+        highs = [c.high for c in candles]
+        lows = [c.low for c in candles]
+        closes = [c.close for c in candles]
+        signals: list[Signal] = [Signal.HOLD] * len(candles)
+        for i in range(len(candles)):
+            if i >= self.entry_period and closes[i] > max(highs[i - self.entry_period:i]):
+                signals[i] = Signal.BUY
+            elif i >= self.exit_period and closes[i] < min(lows[i - self.exit_period:i]):
+                signals[i] = Signal.SELL
+        return signals

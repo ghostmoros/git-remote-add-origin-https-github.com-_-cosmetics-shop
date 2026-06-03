@@ -13,8 +13,8 @@ import sys
 
 from professor import __version__
 from professor.config import Config
-from professor.engine import run_polymarket, run_trading
-from professor.report import render_polymarket, render_trading
+from professor.engine import run_polymarket, run_trading, run_walkforward
+from professor.report import render_polymarket, render_trading, render_walkforward
 
 
 def main(argv: list[str]) -> int:
@@ -28,6 +28,15 @@ def main(argv: list[str]) -> int:
     print(f"  ПРОФЕССОР v{__version__}  —  крипто-трейдинг + Polymarket")
     print("=" * 66)
     print(f"Режим: {mode_label}  ·  капитал на символ: ${cfg.capital:,.0f}\n")
+
+    if "--wf" in argv:           # режим walk-forward анализа
+        wf_results, wf_src = run_walkforward(cfg)
+        print(render_walkforward(wf_results))
+        print(f"Источник данных: {wf_src}\n")
+        print("─" * 66)
+        print("⚠️  Бэктест ≠ гарантия. OOS-результат — реалистичный ориентир,")
+        print("    но вживую добавятся проскальзывание и задержки. Не финсовет.")
+        return 0
 
     tr_results, tr_src = run_trading(cfg)
     print(render_trading(tr_results, cfg.capital))

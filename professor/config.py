@@ -36,6 +36,17 @@ class PolymarketConfig:
 
 
 @dataclass
+class WalkForwardConfig:
+    """Параметры walk-forward анализа (Donchian breakout)."""
+
+    candles: int = 1000           # длиннее основного прогона — нужно много окон
+    in_sample: int = 300          # окно оптимизации (train)
+    out_sample: int = 120         # окно проверки (test, out-of-sample)
+    warmup: int = 60              # прогрев индикаторов перед каждым OOS-окном
+    entry_grid: list = field(default_factory=lambda: [15, 20, 30, 40, 55])
+
+
+@dataclass
 class Config:
     """Корневая конфигурация."""
 
@@ -44,3 +55,4 @@ class Config:
     capital: float = 1000.0       # стартовый капитал на символ, USDT
     trading: TradingConfig = field(default_factory=TradingConfig)
     polymarket: PolymarketConfig = field(default_factory=PolymarketConfig)
+    walkforward: WalkForwardConfig = field(default_factory=WalkForwardConfig)

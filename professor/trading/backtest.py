@@ -32,8 +32,13 @@ class BacktestResult:
 
 def run_backtest(symbol: str, candles: list[Candle], strategy: Strategy,
                  start_equity: float, fee_pct: float = 0.04,
-                 exposure: float = 0.95) -> BacktestResult:
-    """Прогоняет стратегию по свечам и возвращает результат с метриками."""
+                 exposure: float = 0.95, warmup: int = 0) -> BacktestResult:
+    """Прогоняет стратегию по свечам и возвращает результат с метриками.
+
+    `warmup` — сколько первых свечей использовать только для прогрева индикаторов
+    (не торгуем и не пишем эквити). Нужно для walk-forward: индикаторы видят
+    историю до out-of-sample окна, а сделки идут только внутри окна.
+    """
     signals = strategy.generate(candles)
     fee = fee_pct / 100.0
 
@@ -64,6 +69,8 @@ def run_backtest(symbol: str, candles: list[Candle], strategy: Strategy,
         entry_price = 0.0
 
     for i, c in enumerate(candles):
+        if i < warmup:           # прогрев индикаторов: не торгуем и не пишем эквити
+            continue
         sig = signals[i]
         price = c.close
         if sig == Signal.BUY and not in_pos:

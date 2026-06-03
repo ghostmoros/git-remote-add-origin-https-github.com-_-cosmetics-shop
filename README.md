@@ -20,6 +20,8 @@
 python3 main.py          # симуляция (по умолчанию)
 python3 main.py --live   # попытаться взять реальные публичные API,
                          # при блокировке — автооткат на симуляцию
+python3 main.py --wf     # walk-forward анализ Donchian breakout
+                         # (честная out-of-sample проверка vs переобучение)
 ```
 
 Пример вывода:
@@ -72,8 +74,9 @@ professor/
   trading/
     data.py              # свечи: синтетика + (опц.) Binance
     indicators.py        # SMA / EMA / RSI
-    strategy.py          # SMA-cross + RSI-фильтр
-    backtest.py          # paper-брокер + прогон (long-only)
+    strategy.py          # SMA-cross + RSI-фильтр; Donchian breakout
+    backtest.py          # paper-брокер + прогон (long-only, с прогревом)
+    walkforward.py       # walk-forward: честная out-of-sample проверка
     metrics.py           # винрейт, profit factor, expectancy, просадка
   polymarket/
     models.py            # модель рынка

@@ -9,7 +9,8 @@ from professor.polymarket.scanner import scan
 from professor.trading.backtest import run_backtest
 from professor.trading.data import synthetic_candles
 from professor.trading.indicators import rsi, sma
-from professor.trading.strategy import SmaRsiStrategy
+from professor.trading.strategy import DonchianBreakoutStrategy, Signal, SmaRsiStrategy
+from professor.trading.walkforward import buy_and_hold_return, walk_forward
 
 
 class TestIndicators(unittest.TestCase):
@@ -59,6 +60,44 @@ class TestBacktest(unittest.TestCase):
         a = synthetic_candles(200, 100.0, seed=42)
         b = synthetic_candles(200, 100.0, seed=42)
         self.assertEqual([c.close for c in a], [c.close for c in b])
+
+    def test_warmup_skips_early_candles(self):
+        candles = synthetic_candles(100, 100.0, seed=2)
+        res = run_backtest("T", candles, SmaRsiStrategy(), 1000.0, warmup=30)
+        self.assertEqual(len(res.equity_curve), 70)
+
+
+class TestDonchian(unittest.TestCase):
+    def test_breakout_generates_buy(self):
+        # сильный аптренд с малым шумом → постоянные новые максимумы → пробои
+        candles = synthetic_candles(200, 100.0, seed=1, drift=0.01, vol=0.005)
+        signals = DonchianBreakoutStrategy(entry_period=20, exit_period=10).generate(candles)
+        self.assertGreater(sum(s == Signal.BUY for s in signals), 0)
+
+    def test_no_lookahead_first_candles_hold(self):
+        candles = synthetic_candles(50, 100.0, seed=1)
+        signals = DonchianBreakoutStrategy(entry_period=20, exit_period=10).generate(candles)
+        # до набора истории канала сигналов быть не может
+        self.assertTrue(all(s == Signal.HOLD for s in signals[:10]))
+
+
+class TestWalkForward(unittest.TestCase):
+    def _factory(self, p):
+        return DonchianBreakoutStrategy(entry_period=p["entry"], exit_period=p["exit"])
+
+    def test_walk_forward_runs(self):
+        candles = synthetic_candles(700, 100.0, seed=3)
+        grid = [{"entry": e, "exit": max(5, e // 2)} for e in (15, 20, 30)]
+        res = walk_forward("T", candles, self._factory, grid, 1000.0, 0.04,
+                           in_size=200, out_size=100, warmup=40)
+        self.assertGreaterEqual(res.n_segments, 1)
+        self.assertEqual(len(res.chosen_params), res.n_segments)
+        self.assertGreaterEqual(res.oos_stats.final_equity, 0.0)  # long-only ≥ 0
+
+    def test_buy_and_hold(self):
+        candles = synthetic_candles(50, 100.0, seed=5)
+        self.assertAlmostEqual(buy_and_hold_return(candles),
+                               candles[-1].close / candles[0].close - 1)
 
 
 if __name__ == "__main__":

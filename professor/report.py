@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .polymarket.scanner import Opportunity
 from .trading.backtest import BacktestResult
+from .trading.walkforward import WalkForwardResult
 from .utils import fmt_money, fmt_pct, fmt_signed_pct
 
 
@@ -44,4 +45,24 @@ def render_polymarket(opps: list[Opportunity], max_results: int = 12) -> str:
     lines.append("─" * 78)
     shown = min(max_results, len(opps))
     lines.append(f"Всего возможностей: {len(opps)} (показаны топ-{shown} по EV на $1)")
+    return "\n".join(lines)
+
+
+def render_walkforward(results: list[WalkForwardResult]) -> str:
+    lines = ["🧪 WALK-FORWARD — Donchian breakout (честная OOS-проверка)", "─" * 74]
+    lines.append(f"{'Символ':<9}{'Сегм.':>6}{'IS переоб.':>13}{'OOS честно':>13}"
+                 f"{'Buy&Hold':>11}{'OOS PF':>8}{'OOS DD':>9}")
+    lines.append("─" * 74)
+    for r in results:
+        s = r.oos_stats
+        pf = "∞" if s.profit_factor == float("inf") else f"{s.profit_factor:.2f}"
+        lines.append(f"{r.symbol:<9}{r.n_segments:>6}"
+                     f"{fmt_signed_pct(r.insample_stats.total_return):>13}"
+                     f"{fmt_signed_pct(s.total_return):>13}"
+                     f"{fmt_signed_pct(r.buyhold_return):>11}"
+                     f"{pf:>8}{fmt_pct(s.max_drawdown):>9}")
+    lines.append("─" * 74)
+    lines.append("IS  = оптимизация на ВСЕХ данных (оптимистично — это переобучение).")
+    lines.append("OOS = результат на данных, которых оптимизация не видела (честно).")
+    lines.append("Разрыв между IS и OOS — это и есть «цена переобучения».")
     return "\n".join(lines)
