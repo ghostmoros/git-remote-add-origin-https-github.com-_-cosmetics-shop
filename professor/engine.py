@@ -1,12 +1,14 @@
 """Движок: связывает данные, стратегию и сканер. Live-режим сам откатывается на sim."""
 from __future__ import annotations
 
+import os
+
 from .config import Config
 from .polymarket.client import gamma_markets, sample_markets
 from .polymarket.models import PMMarket
 from .polymarket.scanner import Opportunity, scan
 from .trading.backtest import BacktestResult, run_backtest
-from .trading.data import Candle, binance_klines, synthetic_candles
+from .trading.data import Candle, binance_klines, load_csv, synthetic_candles
 from .trading.strategy import DonchianBreakoutStrategy, SmaRsiStrategy
 from .trading.walkforward import WalkForwardResult, walk_forward
 
@@ -23,6 +25,18 @@ def _load_candles(cfg: Config, symbol: str, n: int | None = None) -> tuple[list[
     return synthetic_candles(count, start, seed), "sim"
 
 
+def _series(cfg: Config, n: int | None = None):
+    """Отдаёт (символ, свечи, источник). Если задан csv_path — один ряд из файла."""
+    if cfg.csv_path:
+        candles = load_csv(cfg.csv_path)
+        name = (os.path.basename(cfg.csv_path).rsplit(".", 1)[0][:10]) or "CSV"
+        yield name, candles, f"csv: {os.path.basename(cfg.csv_path)} ({len(candles)} свечей)"
+        return
+    for sym in cfg.trading.symbols:
+        candles, source = _load_candles(cfg, sym, n)
+        yield sym, candles, source
+
+
 def run_trading(cfg: Config) -> tuple[list[BacktestResult], str]:
     strat = SmaRsiStrategy(
         fast=cfg.trading.fast_ma, slow=cfg.trading.slow_ma,
@@ -31,8 +45,7 @@ def run_trading(cfg: Config) -> tuple[list[BacktestResult], str]:
     )
     results: list[BacktestResult] = []
     source = "sim"
-    for sym in cfg.trading.symbols:
-        candles, source = _load_candles(cfg, sym)
+    for sym, candles, source in _series(cfg):
         results.append(run_backtest(sym, candles, strat, cfg.capital,
                                     cfg.trading.fee_pct, cfg.trading.exposure))
     return results, source
@@ -65,8 +78,7 @@ def run_walkforward(cfg: Config) -> tuple[list[WalkForwardResult], str]:
 
     results: list[WalkForwardResult] = []
     source = "sim"
-    for sym in cfg.trading.symbols:
-        candles, source = _load_candles(cfg, sym, wf.candles)
+    for sym, candles, source in _series(cfg, wf.candles):
         results.append(walk_forward(sym, candles, factory, grid, cfg.capital,
                                     cfg.trading.fee_pct, wf.in_sample, wf.out_sample,
                                     wf.warmup))

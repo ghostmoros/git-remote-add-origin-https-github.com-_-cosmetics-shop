@@ -2,10 +2,11 @@
 """Профессор — запуск симуляции: крипто-трейдинг + поиск возможностей на Polymarket.
 
 Использование:
-    python3 main.py            # режим СИМУЛЯЦИИ (по умолчанию: без сети и ключей)
-    python3 main.py --live     # попытаться использовать реальные публичные API
-                               # (Binance / Polymarket Gamma); при блокировке —
-                               # автоматический откат на симуляцию
+    python3 main.py                 # режим СИМУЛЯЦИИ (по умолчанию: без сети/ключей)
+    python3 main.py --live          # реальные публичные API (при блокировке — откат)
+    python3 main.py --wf            # walk-forward анализ Donchian breakout
+    python3 main.py --csv FILE      # запуск на реальных данных из CSV-файла
+    python3 main.py --wf --csv FILE # walk-forward на реальных данных из CSV
 """
 from __future__ import annotations
 
@@ -21,9 +22,17 @@ def main(argv: list[str]) -> int:
     cfg = Config()
     if "--live" in argv:
         cfg.mode = "live"
+    if "--csv" in argv:
+        i = argv.index("--csv")
+        if i + 1 < len(argv):
+            cfg.csv_path = argv[i + 1]
 
-    mode_label = ("LIVE (реальные публичные API)" if cfg.mode == "live"
-                  else "СИМУЛЯЦИЯ (paper, без риска)")
+    if cfg.csv_path:
+        mode_label = "РЕАЛЬНЫЕ ДАННЫЕ (CSV)"
+    elif cfg.mode == "live":
+        mode_label = "LIVE (реальные публичные API)"
+    else:
+        mode_label = "СИМУЛЯЦИЯ (paper, без риска)"
     print("=" * 66)
     print(f"  ПРОФЕССОР v{__version__}  —  крипто-трейдинг + Polymarket")
     print("=" * 66)

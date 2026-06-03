@@ -58,3 +58,64 @@ def binance_klines(symbol: str, interval: str = "1h", limit: int = 500,
         # k = [openTime, open, high, low, close, volume, ...]
         out.append(Candle(i, float(k[1]), float(k[2]), float(k[3]), float(k[4]), float(k[5])))
     return out
+
+
+def load_csv(path: str) -> list[Candle]:
+    """Загружает реальные свечи из CSV-файла (OHLCV).
+
+    Понимает два частых формата:
+      • с заголовком: колонки open/high/low/close [+ volume] [+ time/date/unix];
+      • без заголовка, в стиле дампов Binance: time,open,high,low,close,volume,...
+
+    Если есть числовая колонка времени — строки сортируются по возрастанию
+    (некоторые источники отдают данные «новые сверху»).
+    """
+    import csv as _csv
+
+    def num(x):
+        try:
+            return float(x)
+        except (TypeError, ValueError):
+            return None
+
+    with open(path, newline="") as f:
+        rows = [r for r in _csv.reader(f) if r]
+    if not rows:
+        return []
+
+    has_header = any(num(x) is None for x in rows[0])
+    if has_header:
+        head = [h.strip().lower() for h in rows[0]]
+
+        def col(*names):
+            for nm in names:
+                if nm in head:
+                    return head.index(nm)
+            return None
+
+        oi, hi, li, ci = col("open"), col("high"), col("low"), col("close")
+        vi = col("volume", "vol", "volume btc", "volume usdt", "basevolume")
+        ti = col("unix", "timestamp", "time", "open_time", "date")
+        data = rows[1:]
+    else:
+        ti, oi, hi, li, ci, vi = 0, 1, 2, 3, 4, 5      # Binance-style без заголовка
+        data = rows
+
+    if None in (oi, hi, li, ci):
+        raise ValueError("CSV: не найдены колонки open/high/low/close")
+
+    if ti is not None and data and all(
+        ti < len(r) and num(r[ti]) is not None for r in data[:5]
+    ):
+        data = sorted(data, key=lambda r: num(r[ti]) if ti < len(r) else 0.0)
+
+    candles: list[Candle] = []
+    for i, r in enumerate(data):
+        if max(oi, hi, li, ci) >= len(r):
+            continue
+        o, h, l, c = num(r[oi]), num(r[hi]), num(r[li]), num(r[ci])
+        if None in (o, h, l, c):
+            continue
+        v = num(r[vi]) if (vi is not None and vi < len(r)) else None
+        candles.append(Candle(i, o, h, l, c, v if v is not None else 0.0))
+    return candles

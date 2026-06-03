@@ -51,6 +51,7 @@ class Config:
     """Корневая конфигурация."""
 
     mode: str = "sim"             # "sim" — симуляция; "live" — реальные публичные API
+    csv_path: str | None = None   # путь к CSV с реальными свечами (--csv); важнее mode
     seed: int = 7                 # фиксируем для воспроизводимости симуляции
     capital: float = 1000.0       # стартовый капитал на символ, USDT
     trading: TradingConfig = field(default_factory=TradingConfig)

@@ -41,6 +41,38 @@ python3 main.py --wf     # walk-forward анализ Donchian breakout
 ...
 ```
 
+## Реальные данные (CSV / live)
+
+В некоторых окружениях прямой доступ к биржам закрыт сетевой политикой (API
+отдают 403) — тогда котировки не качаются «на лету». Два способа работать на
+настоящих данных:
+
+**1. CSV-файл (работает где угодно, без сети):**
+
+```bash
+python3 main.py --csv data/BTCUSDT-1d.csv        # обычный прогон
+python3 main.py --wf --csv data/BTCUSDT-1d.csv   # walk-forward на реальных данных
+```
+
+Где взять бесплатные исторические OHLCV:
+- **Binance public data** — https://data.binance.vision (просто файлы, без ключей,
+  напр. `spot/monthly/klines/BTCUSDT/1d/`)
+- **CryptoDataDownload** — https://www.cryptodatadownload.com
+- **Kaggle** — крипто-датасеты
+
+Загрузчик понимает формат с заголовком (`open,high,low,close,volume[,time/date]`)
+и без заголовка (стиль Binance: `time,open,high,low,close,volume,...`) и сам
+сортирует по времени.
+
+**2. Live-режим (нужна сеть к биржам):**
+
+```bash
+python3 main.py --live
+```
+
+Заработает в окружении, чья сетевая политика разрешает биржевые домены. Подробнее
+про сетевые политики — https://code.claude.com/docs/en/claude-code-on-the-web
+
 ## Как считается прибыльность
 
 Высокий **винрейт** ≠ прибыль. Решает **матожидание (expectancy)**:

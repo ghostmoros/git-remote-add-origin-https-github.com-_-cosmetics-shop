@@ -7,7 +7,7 @@ import unittest
 from professor.polymarket.models import PMMarket
 from professor.polymarket.scanner import scan
 from professor.trading.backtest import run_backtest
-from professor.trading.data import synthetic_candles
+from professor.trading.data import load_csv, synthetic_candles
 from professor.trading.indicators import rsi, sma
 from professor.trading.strategy import DonchianBreakoutStrategy, Signal, SmaRsiStrategy
 from professor.trading.walkforward import buy_and_hold_return, walk_forward
@@ -98,6 +98,33 @@ class TestWalkForward(unittest.TestCase):
         candles = synthetic_candles(50, 100.0, seed=5)
         self.assertAlmostEqual(buy_and_hold_return(candles),
                                candles[-1].close / candles[0].close - 1)
+
+
+class TestCSVLoader(unittest.TestCase):
+    def _write(self, content: str) -> str:
+        import os
+        import tempfile
+        fd, path = tempfile.mkstemp(suffix=".csv")
+        with os.fdopen(fd, "w", newline="") as f:
+            f.write(content)
+        self.addCleanup(os.unlink, path)
+        return path
+
+    def test_headerless_binance_style(self):
+        path = self._write("1000,10,12,9,11,100\n2000,11,13,10,12,120\n3000,12,14,11,13,130\n")
+        candles = load_csv(path)
+        self.assertEqual(len(candles), 3)
+        self.assertEqual(candles[0].close, 11.0)
+        self.assertEqual(candles[2].high, 14.0)
+
+    def test_header_and_ascending_sort(self):
+        # строки «новые сверху» → загрузчик сортирует по unix по возрастанию
+        path = self._write("unix,open,high,low,close,volume\n"
+                           "2000,11,13,10,12,5\n1000,10,12,9,11,4\n")
+        candles = load_csv(path)
+        self.assertEqual(len(candles), 2)
+        self.assertEqual(candles[0].close, 11.0)   # самая ранняя (unix 1000) — первая
+        self.assertEqual(candles[1].close, 12.0)
 
 
 if __name__ == "__main__":
