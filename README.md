@@ -38,6 +38,7 @@ pip install -r requirements.txt
 python3 main.py        # run a backtest with config/config.yaml
 python3 optimize.py    # grid-search stop-loss / take-profit multiples
 python3 compare.py     # backtest ALL strategies, ranked in one table
+python3 analyze_otc.py --selftest   # test if a synthetic/OTC feed is predictable
 ```
 
 ## Project layout
@@ -65,6 +66,8 @@ forex-bot/
 │   │   └── mt5.py             # MetaTrader 5 adapter (RoboForex etc.)
 │   ├── risk/
 │   │   └── sizing.py          # lot sizing from risk % + stop distance
+│   ├── analysis/
+│   │   └── otc.py             # is a synthetic/OTC feed predictable? (out-of-sample test)
 │   └── backtest/
 │       ├── engine.py          # risk-based sizing, ATR SL/TP, no look-ahead
 │       └── metrics.py         # win rate, profit factor, expectancy, drawdown…
@@ -72,6 +75,7 @@ forex-bot/
 ├── main.py                    # run one backtest + report
 ├── optimize.py                # sweep risk params, rank by expectancy & win rate
 ├── compare.py                 # backtest every strategy, ranked in one table
+├── analyze_otc.py             # test a synthetic/OTC feed for an out-of-sample edge
 ├── run_live.py                # live/dry-run trading via MT5 (run on YOUR PC)
 ├── fetch_history.py           # dump real candles from MT5 to data/*.csv
 ├── requirements.txt
@@ -201,6 +205,36 @@ data:
 python compare.py    # which strategy actually holds an edge on real EUR/USD?
 ```
 
+## Testing a synthetic / OTC feed (binary options)
+
+Binary-options brokers price their weekend / **OTC** assets (and those synthetic
+"indices" like *Compound Index*) with an **internal generator**, not a real
+market. The only rational reason to record those ticks is to ask, honestly,
+whether the generator leaves a footprint you can predict — and whether that edge
+**survives on data you didn't look at while searching**.
+
+`analyze_otc.py` does exactly that. Point it at a CSV of recorded ticks (any of
+`price` / `close` / `last` / `mid` / `bid`+`ask` as the price; a
+`time`/`date`/`datetime`/`timestamp` column is used if present, else row order):
+
+```bash
+python3 analyze_otc.py --selftest                       # prove the tool works (no data needed)
+python3 analyze_otc.py data/gbpusd_otc.csv              # default 82% payout
+python3 analyze_otc.py data/pepe_otc.csv --payout 0.95  # set your platform's payout
+```
+
+It runs randomness tests (Wald–Wolfowitz runs test, autocorrelation, Markov
+conditionals), then learns the best short-memory rule on the first 65 % of the
+history and scores it on the held-out tail — the **in-sample vs out-of-sample gap
+is the overfitting**. Finally it applies the **payout gate**: at an 82 % payout
+you must be right **> 54.95 %** of the time just to break even, so any
+"significant" pattern that doesn't clear that line is worthless.
+
+> A clean random generator correctly comes back as **"no exploitable edge"** —
+> that's the tool working, not failing. And even a real edge can be neutralised:
+> the broker can reseed the generator, void "suspicious" trades, or refuse
+> withdrawals. Test on a **demo** account and never risk money you can't lose.
+
 ## Roadmap
 
 - [x] Indicators, strategies, backtest engine, metrics, optimizer
@@ -208,6 +242,7 @@ python compare.py    # which strategy actually holds an edge on real EUR/USD?
 - [x] MetaTrader 5 adapter + dry-run live runner (demo-first, real-account gated)
 - [x] Risk-based lot sizing for live orders (% of equity per trade)
 - [x] Pull real history from MT5 to CSV (`fetch_history.py`)
+- [x] OTC/synthetic-feed predictability test, out-of-sample (`analyze_otc.py`)
 - [ ] OANDA adapter (REST + streaming, practice account first)
 - [ ] Telegram alerts / status reporting
 - [ ] Walk-forward validation to avoid overfitting
