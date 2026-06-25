@@ -1,0 +1,6 @@
+# AI Trading Assistant dependencies
+# pip install -r requirements.txt -r requirements-ai.txt
+
+anthropic>=0.40.0     # Claude API
+mss>=9.0.0            # Screen capture (cross-platform)
+Pillow>=10.0.0        # Image processing
