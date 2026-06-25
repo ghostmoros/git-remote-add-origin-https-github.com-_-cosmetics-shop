@@ -125,7 +125,7 @@ def _score(trades, payout: float) -> dict:
 
 
 def analyze_edge(df: pd.DataFrame, payout: float = 0.82, train_frac: float = 0.65,
-                 threshold: float | None = None) -> dict:
+                 threshold: float | None = None, horizon: float | None = None) -> dict:
     fast_ts = df["fast_ts"].to_numpy(float)
     broker_price = df["broker_price"].to_numpy(float)
     d = df["fast_price"].to_numpy(float) - broker_price
@@ -141,13 +141,16 @@ def analyze_edge(df: pd.DataFrame, payout: float = 0.82, train_frac: float = 0.6
         threshold = float(np.quantile(nz, 0.70)) if len(nz) else 0.0
 
     # Pick the expiry horizon that pays best IN-SAMPLE, judge it OUT-OF-SAMPLE.
+    # Select on the CONSERVATIVE tie=loss expectancy so we don't flatter ourselves
+    # by choosing a tie-heavy ultra-short expiry that only "wins" via refunds.
+    horizons = (float(horizon),) if horizon else _HORIZONS
     best = None
-    for h in _HORIZONS:
+    for h in horizons:
         expiry_idx = np.searchsorted(fast_ts, fast_ts + h, side="left")
         trades = _simulate(fast_ts, broker_price, d, threshold, expiry_idx, 0, n)
         train = [t for t in trades if t[0] < split]
         score_tr = _score(train, payout)
-        if best is None or score_tr["exp_refund"] > best["train"]["exp_refund"]:
+        if best is None or score_tr["exp_tieloss"] > best["train"]["exp_tieloss"]:
             best = {"horizon": h, "trades": trades, "train": score_tr}
 
     test = [t for t in best["trades"] if t[0] >= split]
@@ -168,6 +171,7 @@ def analyze_edge(df: pd.DataFrame, payout: float = 0.82, train_frac: float = 0.6
 def _verdict(res: dict) -> tuple[str, list[str]]:
     test, train = res["test"], res["train"]
     notes: list[str] = []
+    tie_rate = test["ties"] / test["n"] if test["n"] else 0.0
 
     if res["lag"]["median"] <= 0:
         notes.append("Broker feed is NOT lagging (median lag <= 0) — the whole premise is absent here.")
@@ -179,15 +183,20 @@ def _verdict(res: dict) -> tuple[str, list[str]]:
             "out-of-sample — overfitting; the lead didn't generalise."
         )
 
-    edge = (
-        test["n"] >= 100
-        and res["lag"]["median"] > 0
-        and test["hit_rate"] > res["breakeven"]
-        and test["exp_refund"] > 0
-    )
-    if edge:
-        verdict = "POSSIBLE EDGE — broker catches up enough to beat the payout (confirm on fresh data)"
+    enough = test["n"] >= 100 and res["lag"]["median"] > 0
+    robust = enough and test["hit_rate"] > res["breakeven"] and test["exp_tieloss"] > 0
+    fragile = enough and test["exp_refund"] > 0 and test["exp_tieloss"] <= 0
+
+    if robust:
+        verdict = "POSSIBLE EDGE — profitable even if ties count as losses (confirm on fresh data)"
         notes.append("Necessary, not sufficient: re-record a separate batch and re-run before risking money.")
+    elif fragile:
+        verdict = "INCONCLUSIVE — profit hinges entirely on the tie rule"
+        notes.append(
+            f"{tie_rate*100:.0f}% of trades TIED (broker price unchanged at expiry). This is only "
+            "profitable if your platform REFUNDS ties; if an unchanged price counts as a LOSS, it loses "
+            "money. Confirm the platform's exact rule, and try a longer --horizon so ties resolve."
+        )
     else:
         verdict = "NO tradeable edge — the lead does not beat the payout out-of-sample"
         if test["hit_rate"] > res["breakeven"] and res["lag"]["median"] <= 0:
@@ -218,9 +227,11 @@ def format_edge_report(label: str, res: dict) -> str:
         f"    Divergence threshold : {res['threshold']:.6f}  (price units)",
         f"    Expiry horizon       : {res['horizon']:.0f} s   (best in-sample)",
         f"    Trades train/holdout : {train['n']} / {test['n']}  (non-overlapping)",
-        f"    Hit rate in-sample   : {train['hit_rate']*100:.2f} %",
-        f"    Hit rate OUT-OF-SAMP : {test['hit_rate']*100:.2f} %   "
-        f"(W/L/tie {test['wins']}/{test['losses']}/{test['ties']})",
+        f"    Hit rate in-sample   : {train['hit_rate']*100:.2f} %  (of decided trades)",
+        f"    Hit rate OUT-OF-SAMP : {test['hit_rate']*100:.2f} %   (of decided; "
+        f"W/L/tie {test['wins']}/{test['losses']}/{test['ties']})",
+        f"    Ties (no broker move): {(test['ties']/test['n']*100) if test['n'] else 0:.1f} %  "
+        f"<-- refund or loss? that choice flips the result",
         f"    Break-even @ {res['payout']*100:.0f}% payout: {res['breakeven']*100:.2f} %",
         f"    Expectancy / trade   : {test['exp_refund']:+.4f} R (tie=refund) | "
         f"{test['exp_tieloss']:+.4f} R (tie=loss)",

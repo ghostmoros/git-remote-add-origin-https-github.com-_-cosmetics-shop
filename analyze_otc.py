@@ -39,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("csv", nargs="?", help="path to the tick CSV (single-feed or two-feed)")
     p.add_argument("--payout", type=float, default=0.82,
                    help="win payout as a fraction, e.g. 0.82 for 82%% (default: 0.82)")
+    p.add_argument("--horizon", type=float, default=None,
+                   help="two-feed mode: force the expiry in seconds (e.g. 5) instead of auto-picking")
     p.add_argument("--max-k", type=int, default=3, help="max memory length to try, OTC mode (default: 3)")
     p.add_argument("--max-lag", type=int, default=10, help="max autocorrelation lag, OTC mode (default: 10)")
     p.add_argument("--selftest", action="store_true",
@@ -56,7 +58,8 @@ def main(argv: list[str] | None = None) -> int:
     # Two-feed lag-arbitrage log? That's the bot's actual strategy — test it directly.
     edge_df = edge_mod.load_edge_ticks(args.csv)
     if edge_df is not None:
-        print(edge_mod.format_edge_report(args.csv, edge_mod.analyze_edge(edge_df, payout=args.payout)))
+        res = edge_mod.analyze_edge(edge_df, payout=args.payout, horizon=args.horizon)
+        print(edge_mod.format_edge_report(args.csv, res))
         return 0
 
     # Otherwise treat it as a single price / OTC stream.
