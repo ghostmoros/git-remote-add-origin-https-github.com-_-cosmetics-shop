@@ -36,7 +36,7 @@ import pandas as pd
 
 # Column names we'll accept for the timestamp and the price of a tick row.
 _TIME_COLS = ("time", "date", "datetime", "timestamp")
-_PRICE_COLS = ("price", "close", "last", "mid", "bid", "ask")
+_PRICE_COLS = ("price", "close", "last", "mid", "broker_price", "bid", "ask")
 
 
 # --------------------------------------------------------------------------- #

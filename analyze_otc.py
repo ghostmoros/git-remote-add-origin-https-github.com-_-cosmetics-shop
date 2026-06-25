@@ -27,6 +27,8 @@ from __future__ import annotations
 import argparse
 import sys
 
+import pandas as pd
+
 from bot.analysis import edge as edge_mod
 from bot.analysis.otc import analyze, format_report, load_ticks, selftest
 
@@ -39,6 +41,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("csv", nargs="?", help="path to the tick CSV (single-feed or two-feed)")
     p.add_argument("--payout", type=float, default=0.82,
                    help="win payout as a fraction, e.g. 0.82 for 82%% (default: 0.82)")
+    p.add_argument("--otc", action="store_true",
+                   help="force OTC randomness test on the broker/OTC price column (skip lag-arb)")
     p.add_argument("--horizon", type=float, default=None,
                    help="two-feed mode: force the expiry in seconds (e.g. 5) instead of auto-picking")
     p.add_argument("--max-k", type=int, default=3, help="max memory length to try, OTC mode (default: 3)")
@@ -54,6 +58,16 @@ def main(argv: list[str] | None = None) -> int:
         p.error("provide a CSV path, or use --selftest")
     if not 0.0 < args.payout < 5.0:
         p.error("--payout should be a fraction like 0.82 (82%), not a percentage")
+
+    # --otc: test the broker/OTC synthetic feed for predictability (the first idea).
+    # Pull broker_price out of a two-feed log if that's what we were given.
+    if args.otc:
+        edge_df = edge_mod.load_edge_ticks(args.csv)
+        price = (pd.Series(edge_df["broker_price"].to_numpy(), name="broker_price")
+                 if edge_df is not None else load_ticks(args.csv))
+        print(format_report(f"{args.csv} [OTC feed]",
+                            analyze(price, payout=args.payout, max_lag=args.max_lag, max_k=args.max_k)))
+        return 0
 
     # Two-feed lag-arbitrage log? That's the bot's actual strategy — test it directly.
     edge_df = edge_mod.load_edge_ticks(args.csv)

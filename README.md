@@ -230,9 +230,10 @@ Runs randomness tests (Wald–Wolfowitz runs test, autocorrelation, Markov
 conditionals) + an out-of-sample short-memory model.
 
 ```bash
-python3 analyze_otc.py --selftest                       # prove the tool works (no data needed)
-python3 analyze_otc.py data/gbpusd_otc.csv              # default 82% payout
-python3 analyze_otc.py data/pepe_otc.csv --payout 0.95  # set your platform's payout
+python3 analyze_otc.py --selftest                        # prove the tool works (no data needed)
+python3 analyze_otc.py data/btc_otc.csv --payout 0.90    # crypto OTC pays ~90%
+python3 analyze_otc.py data/eurusd_otc.csv --payout 0.85 # forex OTC pays ~85%
+python3 analyze_otc.py edge_ticks_xxx.csv --otc          # force OTC test on a two-feed log's broker column
 ```
 
 Both end in the **payout gate**: at an 82 % payout you must be right **> 54.95 %**
