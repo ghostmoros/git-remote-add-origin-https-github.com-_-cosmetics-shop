@@ -67,7 +67,8 @@ forex-bot/
 │   ├── risk/
 │   │   └── sizing.py          # lot sizing from risk % + stop distance
 │   ├── analysis/
-│   │   └── otc.py             # is a synthetic/OTC feed predictable? (out-of-sample test)
+│   │   ├── otc.py             # is a synthetic/OTC feed predictable? (out-of-sample test)
+│   │   └── edge.py            # two-feed lag-arbitrage test (fast feed vs broker feed)
 │   └── backtest/
 │       ├── engine.py          # risk-based sizing, ATR SL/TP, no look-ahead
 │       └── metrics.py         # win rate, profit factor, expectancy, drawdown…
@@ -205,17 +206,28 @@ data:
 python compare.py    # which strategy actually holds an edge on real EUR/USD?
 ```
 
-## Testing a synthetic / OTC feed (binary options)
+## Testing a binary-options feed (`analyze_otc.py`)
 
-Binary-options brokers price their weekend / **OTC** assets (and those synthetic
-"indices" like *Compound Index*) with an **internal generator**, not a real
-market. The only rational reason to record those ticks is to ask, honestly,
-whether the generator leaves a footprint you can predict — and whether that edge
-**survives on data you didn't look at while searching**.
+Binary-options brokers either price weekend / **OTC** assets with an internal
+generator, or (in market hours) quote a real pair that *lags* a faster feed. The
+only rational reason to record their ticks is to ask, honestly, whether there's a
+footprint you can predict — and whether that edge **survives on data you didn't
+look at while searching**. `analyze_otc.py` does that, auto-detecting two layouts:
 
-`analyze_otc.py` does exactly that. Point it at a CSV of recorded ticks (any of
-`price` / `close` / `last` / `mid` / `bid`+`ask` as the price; a
-`time`/`date`/`datetime`/`timestamp` column is used if present, else row order):
+**1. Two-feed lag-arbitrage log** — `fast_ts,broker_ts,symbol,fast_price,broker_price`
+(header optional). This is the actual "MT5 vs broker" strategy: it measures the
+real feed **lag**, then bets the broker price catches up to the fast feed and
+checks whether that beats the payout **out-of-sample**, with **non-overlapping**
+trades (no inflated sample).
+
+```bash
+python3 analyze_otc.py arbitrage/data/edge_ticks_20260612_212522.csv --payout 0.82
+```
+
+**2. Single price / OTC stream** — any of `price`/`close`/`last`/`mid`/`bid`+`ask`
+(a `time`/`date`/`datetime`/`timestamp` column is used if present, else row order).
+Runs randomness tests (Wald–Wolfowitz runs test, autocorrelation, Markov
+conditionals) + an out-of-sample short-memory model.
 
 ```bash
 python3 analyze_otc.py --selftest                       # prove the tool works (no data needed)
@@ -223,17 +235,15 @@ python3 analyze_otc.py data/gbpusd_otc.csv              # default 82% payout
 python3 analyze_otc.py data/pepe_otc.csv --payout 0.95  # set your platform's payout
 ```
 
-It runs randomness tests (Wald–Wolfowitz runs test, autocorrelation, Markov
-conditionals), then learns the best short-memory rule on the first 65 % of the
-history and scores it on the held-out tail — the **in-sample vs out-of-sample gap
-is the overfitting**. Finally it applies the **payout gate**: at an 82 % payout
-you must be right **> 54.95 %** of the time just to break even, so any
-"significant" pattern that doesn't clear that line is worthless.
+Both end in the **payout gate**: at an 82 % payout you must be right **> 54.95 %**
+just to break even, so any "significant" pattern that doesn't clear that line is
+worthless. The **in-sample vs out-of-sample gap is the overfitting**.
 
-> A clean random generator correctly comes back as **"no exploitable edge"** —
-> that's the tool working, not failing. And even a real edge can be neutralised:
-> the broker can reseed the generator, void "suspicious" trades, or refuse
-> withdrawals. Test on a **demo** account and never risk money you can't lose.
+> A clean random / lock-step feed correctly comes back as **"no edge"** — that's
+> the tool working, not failing. And even a real edge can be neutralised: live
+> latency eats the lead, and the broker can re-quote at expiry, void "suspicious"
+> trades, or refuse withdrawals. Test on a **demo** account, never risk money you
+> can't lose.
 
 ## Roadmap
 
