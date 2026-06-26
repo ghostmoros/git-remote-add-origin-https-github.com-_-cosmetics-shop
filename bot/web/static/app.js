@@ -156,6 +156,7 @@ function addAlertCard(alert) {
 
   alertCount++;
   alertCountEl.textContent = alertCount;
+  syncTabBadge();
 
   const dir = (alert.direction || '').toLowerCase();
   const card = document.createElement('div');
@@ -246,5 +247,23 @@ document.getElementById('btn-clear-alerts').addEventListener('click', () => {
   send({ action: 'clear_alerts' });
 });
 
+// ── Tabs (center panel) ───────────────────────────────────────────────────────
+document.querySelectorAll('.center-tabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const view = tab.dataset.view;
+    document.querySelectorAll('.center-tabs .tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel-center .view').forEach(v => v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('view-' + view).classList.add('active');
+  });
+});
+
+// Mirror alert count onto the alerts tab badge
+function syncTabBadge() {
+  const el = document.getElementById('tab-alert-count');
+  if (el) el.textContent = alertCount;
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 connect();
+if (typeof initCharts === 'function') initCharts();

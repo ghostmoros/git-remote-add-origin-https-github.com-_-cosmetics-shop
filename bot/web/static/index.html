@@ -62,26 +62,52 @@
     <button class="btn-ghost" id="btn-clear-alerts">Очистить</button>
   </aside>
 
-  <!-- CENTER: Screenshot + Alerts -->
+  <!-- CENTER: Charts / Screen / Alerts -->
   <main class="panel-center">
 
-    <div class="screen-box">
-      <div class="screen-label">Живой экран</div>
-      <img id="screen-img" src="" alt="Скриншот появится здесь" />
-      <div class="screen-placeholder" id="screen-placeholder">
-        Нажми «Скриншот» или запусти мониторинг
+    <div class="center-tabs">
+      <button class="tab active" data-view="charts">📈 Графики</button>
+      <button class="tab" data-view="screen">🖥 Экран</button>
+      <button class="tab" data-view="alerts">🚨 Алерты <span id="tab-alert-count" class="badge">0</span></button>
+    </div>
+
+    <!-- VIEW: Charts -->
+    <div class="view active" id="view-charts">
+      <div class="chart-toolbar">
+        <input type="text" id="add-symbol" placeholder="Добавить символ (напр. FX:AUDUSD)">
+        <button class="btn-blue" id="btn-add-symbol">+ Добавить</button>
+        <div class="tf-group">
+          <button class="tf active" data-tf="15">M15</button>
+          <button class="tf" data-tf="60">H1</button>
+          <button class="tf" data-tf="240">H4</button>
+          <button class="tf" data-tf="D">D</button>
+        </div>
+      </div>
+      <div class="chart-grid" id="chart-grid"></div>
+    </div>
+
+    <!-- VIEW: Screen -->
+    <div class="view" id="view-screen">
+      <div class="screen-box">
+        <div class="screen-label">Живой экран</div>
+        <img id="screen-img" src="" alt="Скриншот появится здесь" />
+        <div class="screen-placeholder" id="screen-placeholder">
+          Нажми «Скриншот» или запусти мониторинг
+        </div>
       </div>
     </div>
 
-    <div class="quick-scan-bar" id="quick-bar" style="display:none">
-      <span id="qb-instrument">—</span>
-      <span class="qb-dir" id="qb-direction">—</span>
-      <span id="qb-cf">— cf</span>
-      <span id="qb-summary">—</span>
-    </div>
-
-    <div class="alerts-list" id="alerts-list">
-      <div class="empty-state">Алертов пока нет. Запусти мониторинг.</div>
+    <!-- VIEW: Alerts -->
+    <div class="view" id="view-alerts">
+      <div class="quick-scan-bar" id="quick-bar" style="display:none">
+        <span id="qb-instrument">—</span>
+        <span class="qb-dir" id="qb-direction">—</span>
+        <span id="qb-cf">— cf</span>
+        <span id="qb-summary">—</span>
+      </div>
+      <div class="alerts-list" id="alerts-list">
+        <div class="empty-state">Алертов пока нет. Запусти мониторинг.</div>
+      </div>
     </div>
 
   </main>
@@ -120,6 +146,8 @@
   </div>
 </div>
 
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script src="/static/charts.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
