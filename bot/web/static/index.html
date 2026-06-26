@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Trading Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">⚡ AI TRADING</div>
+  <div class="header-status">
+    <span class="dot" id="ws-dot"></span>
+    <span id="ws-label">Подключение...</span>
+    <span class="sep">|</span>
+    <span id="scan-info">Сканов: 0</span>
+    <span class="sep">|</span>
+    <span id="last-scan">Последний: —</span>
+  </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT: Controls -->
+  <aside class="panel-left">
+    <h3>Мониторинг</h3>
+
+    <div class="field">
+      <label>Интервал (сек)</label>
+      <input type="number" id="interval" value="60" min="10" max="600">
+    </div>
+
+    <div class="field">
+      <label>Мин. confluences</label>
+      <input type="number" id="min-cf" value="3" min="1" max="10">
+    </div>
+
+    <div class="field">
+      <label>Контекст</label>
+      <input type="text" id="context" placeholder="XAUUSD H1, NY session">
+    </div>
+
+    <button class="btn-green" id="btn-start">▶ Запустить</button>
+    <button class="btn-red" id="btn-stop" disabled>■ Остановить</button>
+
+    <div class="monitor-status" id="monitor-status">
+      <div class="status-dot idle" id="status-dot"></div>
+      <span id="status-text">Остановлен</span>
+    </div>
+
+    <hr>
+
+    <h3>Экран</h3>
+    <button class="btn-blue" id="btn-screenshot">📷 Скриншот</button>
+
+    <hr>
+
+    <h3>Алерты <span id="alert-count" class="badge">0</span></h3>
+    <button class="btn-ghost" id="btn-clear-alerts">Очистить</button>
+  </aside>
+
+  <!-- CENTER: Screenshot + Alerts -->
+  <main class="panel-center">
+
+    <div class="screen-box">
+      <div class="screen-label">Живой экран</div>
+      <img id="screen-img" src="" alt="Скриншот появится здесь" />
+      <div class="screen-placeholder" id="screen-placeholder">
+        Нажми «Скриншот» или запусти мониторинг
+      </div>
+    </div>
+
+    <div class="quick-scan-bar" id="quick-bar" style="display:none">
+      <span id="qb-instrument">—</span>
+      <span class="qb-dir" id="qb-direction">—</span>
+      <span id="qb-cf">— cf</span>
+      <span id="qb-summary">—</span>
+    </div>
+
+    <div class="alerts-list" id="alerts-list">
+      <div class="empty-state">Алертов пока нет. Запусти мониторинг.</div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT: Chat -->
+  <aside class="panel-right">
+    <h3>Чат с ИИ</h3>
+
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg bot">
+        Привет! Я вижу твой экран и слежу за рынком.<br>
+        Спроси меня что угодно по торговле или скажи что анализировать.
+      </div>
+    </div>
+
+    <div class="chat-input-row">
+      <label class="screen-toggle">
+        <input type="checkbox" id="use-screen" checked>
+        <span>📷</span>
+      </label>
+      <input type="text" id="chat-input" placeholder="Задай вопрос..." />
+      <button id="btn-send">→</button>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ALERT MODAL -->
+<div class="modal-overlay" id="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">СЕТАП</span>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
