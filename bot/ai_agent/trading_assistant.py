@@ -17,7 +17,7 @@ from bot.ai_agent.knowledge_loader import build_system_prompt, get_knowledge_sum
 class TradingAssistant:
     """Claude-powered trading assistant with full SMC/ICT knowledge."""
 
-    MODEL = "claude-sonnet-4-6"
+    MODEL = "claude-opus-4-8"
     MAX_TOKENS = 4096
 
     def __init__(self, api_key: str | None = None):

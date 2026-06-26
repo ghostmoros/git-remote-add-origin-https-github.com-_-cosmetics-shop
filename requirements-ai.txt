@@ -4,3 +4,4 @@
 anthropic>=0.40.0     # Claude API
 mss>=9.0.0            # Screen capture (cross-platform)
 Pillow>=10.0.0        # Image processing
+pyautogui>=0.9.54     # Mouse & keyboard control (computer-use agent)
